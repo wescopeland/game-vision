@@ -1,0 +1,29 @@
+{
+  "name": "game-vision",
+  "version": "1.0.0",
+  "description": "Extensible framework for real-time video game performance analysis",
+  "main": "index.js",
+  "scripts": {
+    "start": "./node_modules/nodemon/bin/nodemon.js -e ts --exec \"npm run compile\"",
+    "compile": "tsc && node ./dist/index.js",
+    "debug": "ndb ./dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jimp": "^0.2.28",
+    "@types/node": "^10.11.7",
+    "@types/tesseract.js": "0.0.2",
+    "ndb": "^1.0.26",
+    "nodemon": "^1.18.4"
+  },
+  "dependencies": {
+    "color-diff": "^1.1.0",
+    "jimp": "^0.5.4",
+    "shortid": "^2.2.13",
+    "tesseract.js": "^1.0.10",
+    "window-screenshot": "^1.0.0",
+    "window-tracker": "^1.0.1"
+  }
+}
