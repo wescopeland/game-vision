@@ -35,6 +35,11 @@ export class DonkeyKong extends GameVision {
     this.activate();
   }
 
+  async newActivate() {
+    this.tileImages = await this.buildTileImages(this.tilePaths);
+    console.log(this.tileImages);
+  }
+
   async activate() {
     this.tileImages = await this.buildTileImages(this.tilePaths);
 
@@ -182,7 +187,7 @@ export class DonkeyKong extends GameVision {
       let images: Array<{ id: string; image: Jimp }> = [];
 
       tilePaths.forEach(async tilePath => {
-        let image = await Jimp.read(tilePath.path);
+        let image = await Jimp.read(`assets/${tilePath.path}`);
         images.push({
           image: image,
           id: tilePath.id

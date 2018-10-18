@@ -1,0 +1,1 @@
+{"version":3,"file":"donkey-kong.tile-paths.js","sourceRoot":"","sources":["../../../src/drivers/donkey-kong/donkey-kong.tile-paths.ts"],"names":[],"mappings":";;AAGa,QAAA,SAAS,GAAe;IACnC;QACE,EAAE,EAAE,QAAQ;QACZ,IAAI,EAAE,wBAAwB;KAC/B;IACD;QACE,EAAE,EAAE,MAAM;QACV,IAAI,EAAE,sBAAsB;KAC7B;IACD;QACE,EAAE,EAAE,OAAO;QACX,IAAI,EAAE,uBAAuB;KAC9B;CACF,CAAC"}
