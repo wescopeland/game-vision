@@ -24,6 +24,7 @@
     "color-diff": "^1.1.0",
     "jimp": "^0.5.4",
     "shortid": "^2.2.13",
+    "string-similarity": "^2.0.0",
     "tesseract.js": "^1.0.10",
     "window-screenshot": "^1.0.0",
     "window-tracker": "^1.0.1"
