@@ -9,6 +9,9 @@ export class GameVisionFunctionGenerator {
   captureEngine: ScreenCapture = new ScreenCapture();
   parserEngine: ScreenParser = new ScreenParser();
 
+  private _isDebouncing: boolean = false;
+  private _isThinking: boolean = false;
+
   constructor() {}
 
   generateActivate(
@@ -18,6 +21,7 @@ export class GameVisionFunctionGenerator {
   ): Function {
     const activate = async function() {
       let currentImage: Jimp;
+      let isDebouncing = false;
       let isThinking = false;
       let lastReadLifeCount: number = null;
       let lastReadScore: number = null;
@@ -33,7 +37,7 @@ export class GameVisionFunctionGenerator {
       }
 
       setInterval(async () => {
-        if (!isThinking) {
+        if (!this._isThinking) {
           currentImage = await this.captureEngine.initializeImage(
             this.processes,
             gameResolution
@@ -61,8 +65,9 @@ export class GameVisionFunctionGenerator {
                 console.log("END");
               }
 
-              if (isShowingTriggerText) {
-                isThinking = true;
+              if (isShowingTriggerText && !this._isDebouncing) {
+                this._isThinking = true;
+                this._isDebouncing = true;
 
                 setTimeout(async () => {
                   currentImage = await this.captureEngine.initializeImage(
@@ -114,6 +119,7 @@ export class GameVisionFunctionGenerator {
                           reserveLifeCount === 2
                         ) {
                           console.log("START");
+                          this._isDebouncing = false;
                         }
 
                         // Screen Cleared
@@ -126,6 +132,8 @@ export class GameVisionFunctionGenerator {
                             currentScore,
                             currentScore - lastReadScore
                           );
+
+                          this._isDebouncing = false;
                         }
 
                         // Screen Cleared (gained a 1up)
@@ -138,6 +146,8 @@ export class GameVisionFunctionGenerator {
                             currentScore,
                             currentScore - lastReadScore
                           );
+
+                          this._isDebouncing = false;
                         }
 
                         // Death
@@ -150,6 +160,8 @@ export class GameVisionFunctionGenerator {
                             currentScore,
                             currentScore - lastReadScore
                           );
+
+                          this._isDebouncing = false;
                         }
 
                         // Death (gained a 1up)
@@ -162,6 +174,8 @@ export class GameVisionFunctionGenerator {
                             currentScore,
                             currentScore - lastReadScore
                           );
+
+                          this._isDebouncing = false;
                         }
                       }
 
@@ -169,7 +183,7 @@ export class GameVisionFunctionGenerator {
                       lastReadScore = currentScore;
                       didLifeCountIncrease = false;
 
-                      isThinking = false;
+                      this._isThinking = false;
                     }
                   );
                 }, thinkingIntervalMs);

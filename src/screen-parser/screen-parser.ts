@@ -29,11 +29,7 @@ export class ScreenParser {
         return d.distance === smallest;
       });
 
-      // console.log(distances);
-      // console.log(closest);
       resolve(closest);
     });
   }
 }
-
-// data.reduce((min, p) => p.y < min ? p.y : min, data[0].y);

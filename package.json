@@ -4,7 +4,7 @@
   "description": "Extensible framework for real-time video game performance analysis",
   "main": "lib/index.js",
   "scripts": {
-    "start": "./node_modules/nodemon/bin/nodemon.js -e ts --exec \"npm run compile\"",
+    "start": "nodemon -e ts --exec \"npm run compile\"",
     "compile": "tsc && node ./lib/index.js",
     "debug": "ndb ./lib/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"

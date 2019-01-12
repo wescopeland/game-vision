@@ -20,14 +20,17 @@ export class ScreenCapture {
   initializeImage(
     processes: WindowProcess[],
     gameResolution: GameResolution
-  ): Promise<Jimp> {
+  ): Promise<any> {
     return new Promise(async (resolve, reject) => {
-      if (!this._processId) {
+      if (platform() === "darwin") {
         this._processId = await this.getWindowId(processes[0]);
       }
 
       let buffer: Buffer = await this.captureWindow(this._processId);
       let image: Jimp = await this.readBuffer(buffer);
+
+      this.dumpImage(image);
+
       image = this.resizeToBounds(
         image,
         gameResolution.width,
@@ -122,10 +125,19 @@ export class ScreenCapture {
     return path.join(tmpdir(), `${uuid.generate()}.png`);
   }
 
-  captureWindow(windowId): Promise<any> {
+  captureWindow(windowId = null, isDumpingImage = false): Promise<any> {
     return new Promise((resolve, reject) => {
       const pngPath = this.generatePngPath();
-      const cmd = `screencapture -x -o -l ${windowId} ${pngPath}`;
+      let cmd = "";
+
+      // We need a different window capture mechanism based on our OS.
+      if (platform() === "darwin") {
+        cmd = `screencapture -x -o -l ${windowId} ${pngPath}`;
+      }
+
+      if (platform() === "win32") {
+        cmd = `screenshot-cmd -wt "AmaRecTV 2.31" -o ${pngPath}`;
+      }
 
       child.exec(cmd, err => {
         if (err) {
@@ -150,7 +162,9 @@ export class ScreenCapture {
       Jimp.read(buffer)
         .then((image: Jimp) => {
           if (platform() === "darwin") {
-            image = this._removeMacWindowTitle(image);
+            image = this._cropForMac(image);
+          } else if (platform() === "win32") {
+            image = this._cropForWindows(image);
           }
 
           resolve(image);
@@ -166,8 +180,20 @@ export class ScreenCapture {
     return image.resize(x, y);
   }
 
-  private _removeMacWindowTitle(image: Jimp): Jimp {
+  private _cropForMac(image: Jimp): Jimp {
     image.crop(0, 22, image.bitmap.width, image.bitmap.height - 22);
+    return image;
+  }
+
+  private _cropForWindows(image: Jimp): Jimp {
+    image.crop(8, 67, image.bitmap.width - 16, image.bitmap.height - 97);
+
+    // TODO: If this is direct capture...
+    if (true) {
+      image.rotate(90, false);
+      image.crop(23, 64, image.bitmap.width - 41, image.bitmap.height - 186);
+    }
+
     return image;
   }
 }
