@@ -44,8 +44,8 @@ export class DonkeyKong extends GameVision {
     this.levelIndicatorEndX = 24;
     this.levelIndicatorY = 3;
 
-    this.watchingIntervalMs = 1500;
-    this.thinkingIntervalMs = 2500;
+    this.watchingIntervalMs = 2750;
+    this.thinkingIntervalMs = 3500;
 
     this.generateDriverFunctions();
     this.activate();
