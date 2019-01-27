@@ -10,6 +10,7 @@ export class GameVisionFunctionGenerator {
   parserEngine: ScreenParser = new ScreenParser();
 
   private _isDebouncing: boolean = false;
+  private _isManualTrigger: boolean = true;
   private _isThinking: boolean = false;
 
   constructor() {}
@@ -19,6 +20,8 @@ export class GameVisionFunctionGenerator {
     thinkingIntervalMs: number,
     gameResolution: any
   ): Function {
+    let that = this;
+
     const activate = async function() {
       let currentImage: Jimp;
       let isDebouncing = false;
@@ -36,162 +39,182 @@ export class GameVisionFunctionGenerator {
         tileImages = await this.buildTileImages(this.tilePaths);
       }
 
-      setInterval(async () => {
-        if (!this._isThinking) {
-          currentImage = await this.captureEngine.initializeImage(
-            this.processes,
-            gameResolution
-          );
-
-          if (this.getSpareLifeCount) {
-            let newSpareLifeCount = await this.getSpareLifeCount(
-              currentImage,
-              tileImages
+      if (!that._isManualTrigger) {
+        setInterval(async () => {
+          if (!this._isThinking) {
+            currentImage = await this.captureEngine.initializeImage(
+              this.processes,
+              gameResolution
             );
 
-            if (newSpareLifeCount > lastReadLifeCount) {
-              didLifeCountIncrease = true;
-            }
-          }
+            if (this.getSpareLifeCount) {
+              let newSpareLifeCount = await this.getSpareLifeCount(
+                currentImage,
+                tileImages
+              );
 
-          let initializerPromises = [this.getTriggerText(currentImage)];
-          if (this.getGameOverText) {
-            initializerPromises.push(this.getGameOverText(currentImage));
-          }
-
-          Promise.all(initializerPromises).then(
-            ([isShowingTriggerText, isShowingGameOverText]) => {
-              if (this.getGameOverText && isShowingGameOverText) {
-                console.log("END");
+              if (newSpareLifeCount > lastReadLifeCount) {
+                didLifeCountIncrease = true;
               }
+            }
 
-              if (isShowingTriggerText && !this._isDebouncing) {
-                this._isThinking = true;
-                this._isDebouncing = true;
+            let initializerPromises = [this.getTriggerText(currentImage)];
+            if (this.getGameOverText) {
+              initializerPromises.push(this.getGameOverText(currentImage));
+            }
 
-                setTimeout(async () => {
-                  currentImage = await this.captureEngine.initializeImage(
-                    this.processes,
-                    gameResolution
-                  );
+            Promise.all(initializerPromises).then(
+              ([isShowingTriggerText, isShowingGameOverText]) => {
+                if (this.getGameOverText && isShowingGameOverText) {
+                  console.log("END");
+                }
 
-                  let promises = [];
-                  if (this.getScoreValue) {
-                    promises.push(
-                      this.getScoreValue(currentImage, currentScore)
-                    );
+                if (isShowingTriggerText && !this._isDebouncing) {
+                  this._isThinking = true;
+                  this._isDebouncing = true;
+
+                  setTimeout(async () => {
+                    // getScreenState();
+                  }, thinkingIntervalMs);
+                }
+              }
+            );
+          }
+        }, watchingIntervalMs);
+      } else {
+        // process.stdin.setRawMode(true);
+        process.stdin.setEncoding("utf8");
+        process.stdin.on("data", async key => {
+          if (key === "\u0003") {
+            process.exit();
+          }
+
+          if (key.includes("r")) {
+            console.log("reset");
+            currentImage = null;
+            isDebouncing = false;
+            isThinking = false;
+            lastReadLifeCount = null;
+            lastReadScore = null;
+            didLifeCountIncrease = false;
+            livesRemaining = null;
+            isShowingHowHighText = null;
+            currentScore = null;
+            currentLevelIndicatorValue = null;
+          }
+
+          if (key.includes("b")) {
+            currentImage = await this.captureEngine.initializeImage(
+              this.processes,
+              gameResolution
+            );
+
+            let promises = [];
+            if (this.getScoreValue) {
+              promises.push(this.getScoreValue(currentImage, currentScore));
+            }
+
+            if (this.getLevelIndicatorValue) {
+              promises.push(this.getLevelIndicatorValue(currentImage));
+            }
+
+            if (this.getSpareLifeCount) {
+              promises.push(this.getSpareLifeCount(currentImage, tileImages));
+            }
+
+            Promise.all(promises).then(
+              ([currentScore, currentLevelIndicator, reserveLifeCount]) => {
+                // If we're only grabbing the score.
+                if (
+                  currentScore !== undefined &&
+                  reserveLifeCount === undefined
+                ) {
+                  console.log("CURRENT SCORE", currentScore);
+                }
+
+                // If we have a fully built out driver.
+                if (
+                  currentScore !== undefined &&
+                  reserveLifeCount !== undefined
+                ) {
+                  // New Game
+                  if (
+                    currentLevelIndicator !== undefined &&
+                    currentScore === 0 &&
+                    currentLevelIndicator === "L=01" &&
+                    reserveLifeCount === 2
+                  ) {
+                    console.log("START");
+                    this._isDebouncing = false;
                   }
 
-                  if (this.getLevelIndicatorValue) {
-                    promises.push(this.getLevelIndicatorValue(currentImage));
-                  }
-
-                  if (this.getSpareLifeCount) {
-                    promises.push(
-                      this.getSpareLifeCount(currentImage, tileImages)
-                    );
-                  }
-
-                  Promise.all(promises).then(
-                    ([
+                  // Screen Cleared
+                  else if (
+                    !didLifeCountIncrease &&
+                    reserveLifeCount >= lastReadLifeCount
+                  ) {
+                    console.log(
+                      "CLEARED",
                       currentScore,
-                      currentLevelIndicator,
-                      reserveLifeCount
-                    ]) => {
-                      // If we're only grabbing the score.
-                      if (
-                        currentScore !== undefined &&
-                        reserveLifeCount === undefined
-                      ) {
-                        console.log("CURRENT SCORE", currentScore);
-                      }
+                      currentScore - lastReadScore
+                    );
 
-                      // If we have a fully built out driver.
-                      if (
-                        currentScore !== undefined &&
-                        reserveLifeCount !== undefined
-                      ) {
-                        // New Game
-                        if (
-                          currentLevelIndicator !== undefined &&
-                          currentScore === 0 &&
-                          currentLevelIndicator === "L=01" &&
-                          reserveLifeCount === 2
-                        ) {
-                          console.log("START");
-                          this._isDebouncing = false;
-                        }
+                    this._isDebouncing = false;
+                  }
 
-                        // Screen Cleared
-                        else if (
-                          !didLifeCountIncrease &&
-                          reserveLifeCount >= lastReadLifeCount
-                        ) {
-                          console.log(
-                            "CLEARED",
-                            currentScore,
-                            currentScore - lastReadScore
-                          );
+                  // Screen Cleared (gained a 1up)
+                  else if (
+                    didLifeCountIncrease &&
+                    reserveLifeCount > lastReadLifeCount
+                  ) {
+                    console.log(
+                      "CLEARED",
+                      currentScore,
+                      currentScore - lastReadScore
+                    );
 
-                          this._isDebouncing = false;
-                        }
+                    this._isDebouncing = false;
+                  }
 
-                        // Screen Cleared (gained a 1up)
-                        else if (
-                          didLifeCountIncrease &&
-                          reserveLifeCount > lastReadLifeCount
-                        ) {
-                          console.log(
-                            "CLEARED",
-                            currentScore,
-                            currentScore - lastReadScore
-                          );
+                  // Death
+                  else if (
+                    !didLifeCountIncrease &&
+                    reserveLifeCount < lastReadLifeCount
+                  ) {
+                    console.log(
+                      "DEATH",
+                      currentScore,
+                      currentScore - lastReadScore
+                    );
 
-                          this._isDebouncing = false;
-                        }
+                    this._isDebouncing = false;
+                  }
 
-                        // Death
-                        else if (
-                          !didLifeCountIncrease &&
-                          reserveLifeCount < lastReadLifeCount
-                        ) {
-                          console.log(
-                            "DEATH",
-                            currentScore,
-                            currentScore - lastReadScore
-                          );
+                  // Death (gained a 1up)
+                  else if (
+                    didLifeCountIncrease &&
+                    reserveLifeCount === lastReadLifeCount
+                  ) {
+                    console.log(
+                      "DEATH",
+                      currentScore,
+                      currentScore - lastReadScore
+                    );
 
-                          this._isDebouncing = false;
-                        }
+                    this._isDebouncing = false;
+                  }
+                }
 
-                        // Death (gained a 1up)
-                        else if (
-                          didLifeCountIncrease &&
-                          reserveLifeCount === lastReadLifeCount
-                        ) {
-                          console.log(
-                            "DEATH",
-                            currentScore,
-                            currentScore - lastReadScore
-                          );
+                lastReadLifeCount = reserveLifeCount;
+                lastReadScore = currentScore;
+                didLifeCountIncrease = false;
 
-                          this._isDebouncing = false;
-                        }
-                      }
-
-                      lastReadLifeCount = reserveLifeCount;
-                      lastReadScore = currentScore;
-                      didLifeCountIncrease = false;
-
-                      this._isThinking = false;
-                    }
-                  );
-                }, thinkingIntervalMs);
+                this._isThinking = false;
               }
-            }
-          );
-        }
-      }, watchingIntervalMs);
+            );
+          }
+        });
+      }
     };
 
     return activate;

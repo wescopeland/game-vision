@@ -191,7 +191,7 @@ export class ScreenCapture {
     // TODO: If this is direct capture...
     if (true) {
       image.rotate(90, false);
-      image.crop(23, 64, image.bitmap.width - 41, image.bitmap.height - 186);
+      image.crop(33, 64, image.bitmap.width - 41, image.bitmap.height - 186);
     }
 
     return image;
